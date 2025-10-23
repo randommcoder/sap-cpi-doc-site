@@ -737,60 +737,6 @@ const PreviewModal = React.memo(({ doc, onClose, onExport, darkMode }: { doc: Do
               />
             </div>
 
-            {/* Executive Summary */}
-            <div className="mb-8 page-break">
-              <h2 className={`text-xl font-bold mb-4 pb-2 border-b-2 ${
-                darkMode ? 'border-slate-700 text-slate-100' : 'border-slate-300 text-slate-800'
-              }`}>1. EXECUTIVE SUMMARY</h2>
-              <div className={`space-y-4 text-sm ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                <div>
-                  <h3 className="font-bold mb-1">1.1 Purpose</h3>
-                  <p>{doc.executive.purpose}</p>
-                </div>
-                <div>
-                  <h3 className="font-bold mb-1">1.2 Scope</h3>
-                  <p>{doc.executive.scope}</p>
-                </div>
-                <div>
-                  <h3 className="font-bold mb-1">1.3 System Landscape</h3>
-                  <p><strong>Source Systems:</strong> {doc.executive.sources}</p>
-                  <p><strong>Target Systems:</strong> {doc.executive.targets}</p>
-                </div>
-                <div>
-                  <h3 className="font-bold mb-2">1.4 Key Stakeholders</h3>
-                  <PreviewTable
-                    headers={['Role', 'Name', 'Contact']}
-                    data={doc.stakeholders.map(s => [s.role, s.name, s.contact])}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Architecture */}
-            <div className="mb-8 page-break">
-              <h2 className={`text-xl font-bold mb-4 pb-2 border-b-2 ${
-                darkMode ? 'border-slate-700 text-slate-100' : 'border-slate-300 text-slate-800'
-              }`}>2. TECHNICAL ARCHITECTURE</h2>
-              <h3 className={`text-lg font-bold mb-2 ${
-                darkMode ? 'text-slate-200' : 'text-slate-800'
-              }`}>2.1 Environment Details</h3>
-              <PreviewTable
-                headers={['Environment', 'Tenant URL', 'Purpose']}
-                data={doc.architecture.environments.map(e => [e.environment, e.url, e.purpose])}
-              />
-            </div>
-
-            {/* Integration Flows */}
-            <div className="mb-8 page-break">
-              <h2 className={`text-xl font-bold mb-4 pb-2 border-b-2 ${
-                darkMode ? 'border-slate-700 text-slate-100' : 'border-slate-300 text-slate-800'
-              }`}>3. INTEGRATION FLOWS</h2>
-              <PreviewTable
-                headers={['ID', 'Name', 'Type', 'Source', 'Target']}
-                data={doc.iflows.map(f => [f.id, f.name, f.type, f.source, f.target])}
-              />
-            </div>
-
             {/* Stats Summary */}
             <div className={`mt-8 p-6 rounded-lg border ${
               darkMode
@@ -1001,7 +947,6 @@ function App() {
 const handleExport = useCallback(async () => {
   const sections: any[] = [];
 
-  // Helper to create "Table Grid" style tables (Word default)
   const createBasicTable = (headers: string[], data: any[], keys: string[]) => {
     if (!data || data.length === 0) {
       return new Paragraph({ 
@@ -1045,7 +990,7 @@ const handleExport = useCallback(async () => {
             })
           )
         }),
-        ...data.map((row, rowIdx) =>
+        ...data.map((row) =>
           new TableRow({
             children: keys.map((key, colIdx) =>
               new TableCell({
@@ -1076,7 +1021,7 @@ const handleExport = useCallback(async () => {
   const createInfoTable = (data: { label: string; value: string }[]) => {
     return new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: data.map((item, idx) =>
+      rows: data.map((item) =>
         new TableRow({
           children: [
             new TableCell({
@@ -1873,8 +1818,6 @@ const handleExport = useCallback(async () => {
               </div>
             )}
 
-            {/* Continue with other tabs... Due to length, I'll show the pattern for one more tab */}
-            
             {activeTab === 'exec' && (
               <div className="animate-in fade-in duration-300">
                 <SectionHeader title="Executive Summary" subtitle="High-level overview of the integration project." icon={LayoutDashboard} darkMode={darkMode} />
@@ -1935,7 +1878,623 @@ const handleExport = useCallback(async () => {
               </div>
             )}
 
-            {/* Footer */}
+            {activeTab === 'arch' && (
+              <div className="animate-in fade-in duration-300">
+                <SectionHeader title="Technical Architecture" subtitle="Landscape setup and environment details." icon={Network} darkMode={darkMode} />
+                <SectionSubHeader title="2.1 Environment Details" darkMode={darkMode} />
+                <RenderTable
+                  path={['architecture', 'environments']}
+                  data={doc.architecture.environments}
+                  headers={['Environment', 'Tenant URL', 'Purpose']}
+                  keys={['environment', 'url', 'purpose']}
+                  editMode={editMode}
+                  onUpdate={updateDeepField}
+                  onRemove={removeRow}
+                  darkMode={darkMode}
+                />
+                {editMode && (
+                  <AddButton
+                    onClick={() => addRow(['architecture', 'environments'], { environment: '', url: '', purpose: '' })}
+                    label="Add Environment"
+                    darkMode={darkMode}
+                  />
+                )}
+              </div>
+            )}
+
+            {activeTab === 'iflows' && (
+              <div className="animate-in fade-in duration-300">
+                <SectionHeader title="Integration Flows Overview" subtitle="Master inventory of all integration artifacts." icon={Activity} darkMode={darkMode} />
+                <RenderTable
+                  path={['iflows']}
+                  data={doc.iflows}
+                  headers={['ID', 'Name', 'Type', 'Source', 'Target']}
+                  keys={['id', 'name', 'type', 'source', 'target']}
+                  editMode={editMode}
+                  onUpdate={updateDeepField}
+                  onRemove={removeRow}
+                  darkMode={darkMode}
+                />
+                {editMode && (
+                  <button
+                    onClick={() =>
+                      addRow(['iflows'], {
+                        id: `IF_${(doc.iflows.length + 1).toString().padStart(3, '0')}`,
+                        name: 'New Integration Flow',
+                        type: 'Async',
+                        source: '',
+                        target: '',
+                        details: {
+                          description: '',
+                          senders: [],
+                          receivers: [],
+                          steps: []
+                        }
+                      })
+                    }
+                    className={`w-full py-4 border-2 border-dashed rounded-xl font-semibold transition-all flex items-center justify-center mt-6 ${
+                      darkMode
+                        ? 'border-blue-500/40 text-blue-400 hover:bg-blue-500/10 hover:border-blue-400'
+                        : 'border-blue-300/60 text-blue-600 hover:bg-blue-50/50 hover:border-blue-400'
+                    }`}
+                  >
+                    <Plus size={20} className="mr-2" /> Create New Integration Flow
+                  </button>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'specs' && (
+              <div className="animate-in fade-in duration-300">
+                <div className={`flex flex-col md:flex-row justify-between items-start md:items-center mb-10 pb-6 border-b ${
+                  darkMode ? 'border-slate-700' : 'border-slate-200'
+                }`}>
+                  <div>
+                    <h2 className={`text-3xl font-bold tracking-tight ${
+                      darkMode ? 'text-slate-100' : 'text-slate-900'
+                    }`}>Detailed Specifications</h2>
+                    <p className={`mt-2 text-lg ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Deep dive configuration for each flow.
+                    </p>
+                  </div>
+                  <div className="mt-6 md:mt-0 w-full md:w-72">
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${
+                      darkMode ? 'text-slate-400' : 'text-slate-500'
+                    }`}>Select Integration Flow</label>
+                    <div className="relative">
+                      <select
+                        className={`block w-full pl-4 pr-10 py-3 text-base rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm appearance-none font-medium transition-all ${
+                          darkMode
+                            ? 'border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700'
+                            : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                        }`}
+                        value={selectedIFlowId}
+                        onChange={(e) => setSelectedIFlowId(e.target.value)}
+                      >
+                        {doc.iflows.length > 0 ? (
+                          doc.iflows.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.id} - {f.name}
+                            </option>
+                          ))
+                        ) : (
+                          <option>No iFlows defined</option>
+                        )}
+                      </select>
+                      <ChevronDown className={`absolute right-3 top-3.5 h-5 w-5 pointer-events-none ${
+                        darkMode ? 'text-slate-500' : 'text-slate-400'
+                      }`} />
+                    </div>
+                  </div>
+                </div>
+
+                {currentIFlow ? (
+                  <div className="space-y-12 animate-in slide-in-from-right-4 duration-300">
+                    <div className={`p-6 rounded-xl border ${
+                      darkMode ? 'bg-slate-900/50 border-slate-700/50' : 'bg-slate-50 border-slate-200/50'
+                    }`}>
+                      <h3 className={`text-lg font-bold mb-6 flex items-center ${
+                        darkMode ? 'text-blue-400' : 'text-blue-700'
+                      }`}>
+                        <FileJson className="mr-3 w-6 h-6 opacity-75" />
+                        {currentIFlow.id} : {currentIFlow.name}
+                      </h3>
+                      <SimpleInput
+                        multiline
+                        label="Functional Description"
+                        value={currentIFlow.details.description}
+                        onChange={(v) => {
+                          const idx = doc.iflows.findIndex((f) => f.id === currentIFlow.id);
+                          updateDeepField(['iflows', idx.toString(), 'details', 'description'], v);
+                        }}
+                        placeholder="Describe the business logic..."
+                        editMode={editMode}
+                        darkMode={darkMode}
+                        className="bg-white"
+                      />
+                    </div>
+
+                    <div className={`rounded-xl border shadow-sm overflow-hidden ${
+                      darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+                    }`}>
+                      <div className={`px-6 py-4 border-b flex items-center justify-between ${
+                        darkMode ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-indigo-50 border-indigo-100'
+                      }`}>
+                        <div className="flex items-center">
+                          <ArrowRightCircle className={darkMode ? 'text-indigo-400 mr-3' : 'text-indigo-600 mr-3'} />
+                          <h4 className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-900'}`}>
+                            Sender Configurations
+                          </h4>
+                        </div>
+                      </div>
+                      <div className="p-6">
+                        <RenderTable
+                          path={['iflows', doc.iflows.findIndex((f) => f.id === currentIFlow.id).toString(), 'details', 'senders']}
+                          data={currentIFlow.details.senders}
+                          headers={['Adapter Type', 'Endpoint', 'Authentication']}
+                          keys={['adapter', 'endpoint', 'auth']}
+                          editMode={editMode}
+                          onUpdate={updateDeepField}
+                          onRemove={removeRow}
+                          darkMode={darkMode}
+                        />
+                        {editMode && (
+                          <AddButton
+                            onClick={() =>
+                              addRow(
+                                ['iflows', doc.iflows.findIndex((f) => f.id === currentIFlow.id).toString(), 'details', 'senders'],
+                                { adapter: '', endpoint: '', auth: '' }
+                              )
+                            }
+                            label="Add Sender"
+                            darkMode={darkMode}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className={`rounded-xl border shadow-sm overflow-hidden ${
+                      darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+                    }`}>
+                      <div className={`px-6 py-4 border-b flex items-center justify-between ${
+                        darkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100'
+                      }`}>
+                        <div className="flex items-center">
+                          <Globe className={darkMode ? 'text-emerald-400 mr-3' : 'text-emerald-600 mr-3'} />
+                          <h4 className={`font-bold ${darkMode ? 'text-emerald-300' : 'text-emerald-900'}`}>
+                            Receiver Configurations
+                          </h4>
+                        </div>
+                      </div>
+                      <div className="p-6">
+                        <RenderTable
+                          path={['iflows', doc.iflows.findIndex((f) => f.id === currentIFlow.id).toString(), 'details', 'receivers']}
+                          data={currentIFlow.details.receivers}
+                          headers={['Adapter Type', 'Endpoint', 'Timeout/Config']}
+                          keys={['adapter', 'endpoint', 'timeout']}
+                          editMode={editMode}
+                          onUpdate={updateDeepField}
+                          onRemove={removeRow}
+                          darkMode={darkMode}
+                        />
+                        {editMode && (
+                          <AddButton
+                            onClick={() =>
+                              addRow(
+                                ['iflows', doc.iflows.findIndex((f) => f.id === currentIFlow.id).toString(), 'details', 'receivers'],
+                                { adapter: '', endpoint: '', timeout: '' }
+                              )
+                            }
+                            label="Add Receiver"
+                            darkMode={darkMode}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <SectionSubHeader title="Process Flow Steps" darkMode={darkMode} />
+                      <RenderTable
+                        path={['iflows', doc.iflows.findIndex((f) => f.id === currentIFlow.id).toString(), 'details', 'steps']}
+                        data={currentIFlow.details.steps}
+                        headers={['Step #', 'Step Type', 'Description']}
+                        keys={['step', 'type', 'description']}
+                        editMode={editMode}
+                        onUpdate={updateDeepField}
+                        onRemove={removeRow}
+                        darkMode={darkMode}
+                      />
+                      {editMode && (
+                        <AddButton
+                          onClick={() =>
+                            addRow(['iflows', doc.iflows.findIndex((f) => f.id === currentIFlow.id).toString(), 'details', 'steps'], {
+                              step: currentIFlow.details.steps.length + 1,
+                              type: '',
+                              description: ''
+                            })
+                          }
+                          label="Add Process Step"
+                          darkMode={darkMode}
+                        />
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`text-center py-32 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed ${
+                    darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-300'
+                  }`}>
+                    <Activity className={`h-16 w-16 mb-4 ${darkMode ? 'text-slate-600' : 'text-slate-300'}`} />
+                    <h3 className={`text-xl font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      No Integration Flows
+                    </h3>
+                    <p className={`mt-2 mb-6 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                      Go to the 'iFlows Overview' section to add your first integration.
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('iflows')}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Go to Overview
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'api' && (
+              <div className="animate-in fade-in duration-300">
+                <SectionHeader title="API Management" subtitle="API Gateway and proxy configurations." icon={Database} darkMode={darkMode} />
+                <SectionSubHeader title="5.1 API Proxies" darkMode={darkMode} />
+                <RenderTable
+                  path={['api', 'proxies']}
+                  data={doc.api.proxies}
+                  headers={['API Proxy Name', 'Base Path', 'Target Endpoint']}
+                  keys={['name', 'basePath', 'target']}
+                  editMode={editMode}
+                  onUpdate={updateDeepField}
+                  onRemove={removeRow}
+                  darkMode={darkMode}
+                />
+                {editMode && (
+                  <div className="mb-12">
+                    <AddButton onClick={() => addRow(['api', 'proxies'], { name: '', basePath: '', target: '' })} label="Add API Proxy" darkMode={darkMode} />
+                  </div>
+                )}
+                <SectionSubHeader title="5.2 Applied Policies" darkMode={darkMode} />
+                <SimpleInput
+                  multiline
+                  label=""
+                  value={doc.api.policies}
+                  onChange={(v) => updateField('api', 'policies', v)}
+                  placeholder="List policies like Rate Limiting, OAuth, Spike Arrest..."
+                  editMode={editMode}
+                  darkMode={darkMode}
+                />
+              </div>
+            )}
+
+            {activeTab === 'prereq' && (
+              <div className="animate-in fade-in duration-300">
+                <SectionHeader title="Prerequisites" subtitle="Required setup before deployment." icon={CheckSquare} darkMode={darkMode} />
+                <RenderTable
+                  path={['prerequisites']}
+                  data={doc.prerequisites}
+                  headers={['Prerequisite Item', 'Status']}
+                  keys={['item', 'status']}
+                  editMode={editMode}
+                  onUpdate={updateDeepField}
+                  onRemove={removeRow}
+                  darkMode={darkMode}
+                />
+                {editMode && (
+                  <AddButton onClick={() => addRow(['prerequisites'], { id: Date.now().toString(), item: '', status: 'Pending' })} label="Add Prerequisite" darkMode={darkMode} />
+                )}
+              </div>
+            )}
+
+            {activeTab === 'deploy' && (
+              <div className="animate-in fade-in duration-300">
+                <SectionHeader title="Deployment Procedures" subtitle="Standard Operating Procedures for promotion." icon={Server} darkMode={darkMode} />
+                <div className="grid md:grid-cols-2 gap-10">
+                  <div className={`p-6 rounded-xl border ${
+                    darkMode ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50/50 border-amber-100/50'
+                  }`}>
+                    <h3 className={`text-lg font-bold mb-4 flex items-center ${
+                      darkMode ? 'text-amber-400' : 'text-amber-800'
+                    }`}>
+                      <CheckSquare className="mr-2" size={20} /> Pre-Deployment Checklist
+                    </h3>
+                    <div className="space-y-3">
+                      {doc.deployment.checklist.map((item, idx) => (
+                        <div key={item.id} className="flex items-start space-x-3 group">
+                          <button
+                            onClick={() => toggleChecklistItem(idx)}
+                            className={`flex-shrink-0 w-5 h-5 rounded border-2 transition-all flex items-center justify-center mt-0.5 ${
+                              item.checked
+                                ? 'bg-green-500 border-green-500'
+                                : darkMode
+                                ? 'bg-slate-800 border-slate-600 hover:border-green-500'
+                                : 'bg-white border-slate-300 hover:border-green-400'
+                            }`}
+                            disabled={!editMode}
+                          >
+                            {item.checked && <Check size={14} className="text-white" />}
+                          </button>
+                          {editMode ? (
+                            <input
+                              type="text"
+                              value={item.text}
+                              onChange={(e) => updateChecklistItem(idx, e.target.value)}
+                              className={`flex-1 px-3 py-1.5 border rounded-md text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none ${
+                                darkMode
+                                  ? 'bg-slate-900 border-slate-700 text-slate-200'
+                                  : 'bg-white border-slate-200 text-slate-700'
+                              }`}
+                              placeholder="Checklist item..."
+                            />
+                          ) : (
+                            <span className={`flex-1 text-sm ${
+                              item.checked
+                                ? darkMode
+                                  ? 'line-through text-slate-600'
+                                  : 'line-through text-slate-400'
+                                : darkMode
+                                ? 'text-slate-300'
+                                : 'text-slate-700'
+                            }`}>
+                              {item.text}
+                            </span>
+                          )}
+                          {editMode && (
+                            <button
+                              onClick={() => removeChecklistItem(idx)}
+                              className={`opacity-0 group-hover:opacity-100 p-1 rounded transition-all ${
+                                darkMode
+                                  ? 'text-red-400 hover:bg-red-500/10'
+                                  : 'text-red-500 hover:bg-red-50'
+                              }`}
+                            >
+                              <X size={16} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {editMode && (
+                      <button
+                        onClick={addChecklistItem}
+                        className={`mt-4 w-full py-2 border-2 border-dashed rounded-lg text-sm font-medium transition-all ${
+                          darkMode
+                            ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10'
+                            : 'border-amber-300 text-amber-700 hover:bg-amber-50'
+                        }`}
+                      >
+                        + Add Checklist Item
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className={`p-6 rounded-xl border ${
+                      darkMode ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50/50 border-blue-100/50'
+                    }`}>
+                      <h3 className={`text-lg font-bold mb-4 flex items-center ${
+                        darkMode ? 'text-blue-400' : 'text-blue-800'
+                      }`}>
+                        <List className="mr-2" size={20} /> Deployment Steps
+                      </h3>
+                      <SimpleInput
+                        multiline
+                        value={doc.deployment.steps}
+                        onChange={(v) => updateField('deployment', 'steps', v)}
+                        placeholder="1. Step one..."
+                        editMode={editMode}
+                        label=""
+                        darkMode={darkMode}
+                        className="bg-white"
+                      />
+                    </div>
+
+                    <div className={`p-6 rounded-xl border ${
+                      darkMode ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50/50 border-red-100/50'
+                    }`}>
+                      <h3 className={`text-lg font-bold mb-4 flex items-center ${
+                        darkMode ? 'text-red-400' : 'text-red-800'
+                      }`}>
+                        <RotateCcw className="mr-2" size={20} /> Rollback Procedures
+                      </h3>
+                      <SimpleInput
+                        multiline
+                        value={doc.deployment.rollback}
+                        onChange={(v) => updateField('deployment', 'rollback', v)}
+                        placeholder="1. Rollback step one..."
+                        editMode={editMode}
+                        label=""
+                        darkMode={darkMode}
+                        className="bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'test' && (
+              <div className="animate-in fade-in duration-300">
+                <SectionHeader title="Testing & Payloads" subtitle="Test scenarios with sample data." icon={FileJson} darkMode={darkMode} />
+                
+                {doc.testing.scenarios.map((scenario, idx) => (
+                  <div key={scenario.id} className={`mb-8 p-6 rounded-xl border ${
+                    darkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className={`text-lg font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                        {scenario.id} - {scenario.scenario}
+                      </h3>
+                      {editMode && (
+                        <button
+                          onClick={() => removeRow(['testing', 'scenarios'], idx)}
+                          className={`p-2 rounded-lg transition-all ${
+                            darkMode
+                              ? 'text-red-400 hover:bg-red-500/10'
+                              : 'text-red-500 hover:bg-red-50'
+                          }`}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <SimpleInput
+                        label="Test ID"
+                        value={scenario.id}
+                        onChange={(v) => updateDeepField(['testing', 'scenarios', idx.toString(), 'id'], v)}
+                        editMode={editMode}
+                        darkMode={darkMode}
+                      />
+                      <SimpleInput
+                        label="Scenario Name"
+                        value={scenario.scenario}
+                        onChange={(v) => updateDeepField(['testing', 'scenarios', idx.toString(), 'scenario'], v)}
+                        editMode={editMode}
+                        darkMode={darkMode}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <SimpleInput
+                        label="Input Description"
+                        value={scenario.input}
+                        onChange={(v) => updateDeepField(['testing', 'scenarios', idx.toString(), 'input'], v)}
+                        editMode={editMode}
+                        darkMode={darkMode}
+                      />
+                      <SimpleInput
+                        label="Expected Output"
+                        value={scenario.expected}
+                        onChange={(v) => updateDeepField(['testing', 'scenarios', idx.toString(), 'expected'], v)}
+                        editMode={editMode}
+                        darkMode={darkMode}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <SimpleInput
+                        multiline
+                        label="Source Payload (XML/JSON)"
+                        value={scenario.sourcePayload}
+                        onChange={(v) => updateDeepField(['testing', 'scenarios', idx.toString(), 'sourcePayload'], v)}
+                        placeholder='<Order>...</Order>'
+                        editMode={editMode}
+                        darkMode={darkMode}
+                      />
+                      <SimpleInput
+                        multiline
+                        label="Target Payload (XML/JSON)"
+                        value={scenario.targetPayload}
+                        onChange={(v) => updateDeepField(['testing', 'scenarios', idx.toString(), 'targetPayload'], v)}
+                        placeholder='<Response>...</Response>'
+                        editMode={editMode}
+                        darkMode={darkMode}
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                {editMode && (
+                  <AddButton
+                    onClick={() =>
+                      addRow(['testing', 'scenarios'], {
+                        id: 'TC' + (doc.testing.scenarios.length + 1).toString().padStart(3, '0'),
+                        scenario: 'New Test Scenario',
+                        input: '',
+                        expected: '',
+                        sourcePayload: '',
+                        targetPayload: ''
+                      })
+                    }
+                    label="Add Test Scenario"
+                    darkMode={darkMode}
+                  />
+                )}
+              </div>
+            )}
+
+            {activeTab === 'sec' && (
+              <div className="animate-in fade-in duration-300">
+                <SectionHeader title="Security Configuration" subtitle="Manage credentials and access artifacts." icon={Shield} darkMode={darkMode} />
+                <div className={`p-6 rounded-xl border mb-8 flex items-start ${
+                  darkMode ? 'bg-rose-500/10 border-rose-500/30' : 'bg-rose-50 border-rose-100'
+                }`}>
+                  <Lock className={`mr-4 mt-1 flex-shrink-0 ${darkMode ? 'text-rose-400' : 'text-rose-500'}`} />
+                  <div>
+                    <h4 className={`font-bold mb-1 ${darkMode ? 'text-rose-400' : 'text-rose-800'}`}>
+                      Security Warning
+                    </h4>
+                    <p className={`text-sm ${darkMode ? 'text-rose-300/80' : 'text-rose-700/80'}`}>
+                      Do not enter actual passwords or sensitive secrets here. Only reference the artifact names used in the CPI tenant.
+                    </p>
+                  </div>
+                </div>
+                <RenderTable
+                  path={['security', 'credentials']}
+                  data={doc.security.credentials}
+                  headers={['Credential Name', 'Type', 'Usage']}
+                  keys={['name', 'type', 'usage']}
+                  editMode={editMode}
+                  onUpdate={updateDeepField}
+                  onRemove={removeRow}
+                  darkMode={darkMode}
+                />
+                {editMode && (
+                  <AddButton
+                    onClick={() => addRow(['security', 'credentials'], { name: '', type: 'User Credentials', usage: '' })}
+                    label="Add Credential"
+                    darkMode={darkMode}
+                  />
+                )}
+              </div>
+            )}
+
+            {activeTab === 'mon' && (
+              <div className="animate-in fade-in duration-300">
+                <SectionHeader title="Monitoring & Operations" subtitle="KPIs, thresholds, and alerting rules." icon={Eye} darkMode={darkMode} />
+                <RenderTable
+                  path={['monitoring', 'metrics']}
+                  data={doc.monitoring.metrics}
+                  headers={['Metric Name', 'Threshold', 'Alert Action']}
+                  keys={['metric', 'threshold', 'alertType']}
+                  editMode={editMode}
+                  onUpdate={updateDeepField}
+                  onRemove={removeRow}
+                  darkMode={darkMode}
+                />
+                {editMode && (
+                  <AddButton onClick={() => addRow(['monitoring', 'metrics'], { metric: '', threshold: '', alertType: '' })} label="Add Metric" darkMode={darkMode} />
+                )}
+              </div>
+            )}
+
+            {activeTab === 'error' && (
+              <div className="animate-in fade-in duration-300">
+                <SectionHeader title="Error Handling" subtitle="Common errors and resolution steps." icon={AlertTriangle} darkMode={darkMode} />
+                <RenderTable
+                  path={['errorHandling', 'scenarios']}
+                  data={doc.errorHandling.scenarios}
+                  headers={['Error', 'Cause', 'Resolution']}
+                  keys={['error', 'cause', 'resolution']}
+                  editMode={editMode}
+                  onUpdate={updateDeepField}
+                  onRemove={removeRow}
+                  darkMode={darkMode}
+                />
+                {editMode && (
+                  <AddButton onClick={() => addRow(['errorHandling', 'scenarios'], { error: '', cause: '', resolution: '' })} label="Add Error Scenario" darkMode={darkMode} />
+                )}
+              </div>
+            )}
+
             <div className={`mt-16 pt-8 border-t-2 text-center ${
               darkMode ? 'border-slate-700' : 'border-slate-200'
             }`}>
